@@ -1,8 +1,15 @@
+' Author: Soonbum Jeong
+' Time: 2022.09.01 - 11:04
+'
+' Algorithm
 ' << 로 시작하는 n번째 셀을 찾는다. (n1) ?
 ' << 로 시작하는 n+1번째 셀을 찾는다. (n2) ?
-' n1과 n2-1 셀 사이에서 가장 넓은 가로 폭을 찾는다. ?
+' n1과 n2-1 셀 사이에서 가장 넓은 가로 폭을 찾는다.
 ' 가로 폭과 세로 폭을 기반으로 인쇄 영역을 설정한다.
 ' 위 작업을 반복한다.
+'
+' Output
+' PDF 파일 결과물은 "내문서" 폴더에 생성됩니다.
 
 Sub Macro_SetPrintArea()
     Dim findStr As String
@@ -13,17 +20,27 @@ Sub Macro_SetPrintArea()
     Dim cellCountHor As Integer
     Dim PrintAreas As String
     
+    Dim Result As Integer
+    Dim FileName As String
+    Dim FileIndex As Long
+    Dim WSH As Object
+    Set WSH = CreateObject("WScript.Shell")
+    
     Dim currentCell As Range
     Dim firstCell As Range
     Dim prevCell As Range
     Dim nextCell As Range
     Dim moreNextCell As Range
-    
+        
     maxWidth = 0
+    FileIndex = 1
     findStr = "<<"                              ' 찾고자 하는 문자열
     PrintAreas = ""                             ' 인쇄 영역 문자열
     Set firstCell = ActiveSheet.Cells(1, 1)     ' 1번째 셀
     ActiveSheet.Cells(1, 1).Select
+    
+    ' 인쇄할 시 방향을 설정함
+    Result = MsgBox("세로 방향으로 인쇄한다면 <예>, 가로 방향으로 인쇄한다면 <아니요>를 클릭하시오.", vbYesNo + vbInformation)
     
     ' 마지막 행 번호를 구함
     With Application.ActiveSheet
@@ -60,7 +77,12 @@ Sub Macro_SetPrintArea()
                 ActiveSheet.PageSetup.FitToPagesWide = 1
                 ActiveSheet.PageSetup.FitToPagesTall = 1
                 ActiveSheet.PageSetup.Zoom = False
-
+                If Result = vbYes Then
+                    ActiveSheet.PageSetup.Orientation = xlPortrait
+                Else
+                    ActiveSheet.PageSetup.Orientation = xlLandscape
+                End If
+                
                 ' 인쇄 영역 다중 설정
 '                If (prevCell.Row < nextCell.Row) Then
 '                    If PrintAreas = "" Then
@@ -75,11 +97,14 @@ Sub Macro_SetPrintArea()
                 ' 인쇄 영역 설정 및 즉시 인쇄
                 If (prevCell.Row < nextCell.Row) Then
                     ActiveSheet.PageSetup.PrintArea = ActiveSheet.Range(Cells(prevCell.Row, prevCell.Column), Cells(nextCell.Row - 2, cellCountHor)).Address
-                    ActiveSheet.PrintOut
                 Else
                     ActiveSheet.PageSetup.PrintArea = ActiveSheet.Range(Cells(prevCell.Row, prevCell.Column), Cells(LastRow, cellCountHor)).Address
-                    ActiveSheet.PrintOut
                 End If
+                'ActiveSheet.PrintOut
+                ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, _
+                        FileName:=WSH.SpecialFolders("MyDocuments") & "\" & "물량표(" & FileIndex & ")" & ".pdf", _
+                        OpenAfterPublish:=False
+                FileIndex = FileIndex + 1
                 
                 ' 다음 셀 또 찾기
                 Set prevCell = nextCell
